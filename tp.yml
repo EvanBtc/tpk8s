@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mariadb
+  name: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - image: mariadb
+        name: mariadb
+        resources: {}
+        env: 
+        - name: MYSQL_ROOT_PASSWORD
+          value: "esgi"
+        - name: MYSQL_USER
+          value: "esgi"
+        - name: MYSQL_PASSWORD
+          value: "esgi"
+        - name: MYSQL_DATABASE
+          value: "esgidb"
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mariadb
+  name: mariadb
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    app: mariadb
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: ettayeb/tp-nginx
+        name: tp-nginx
+        resources: {}
+        env:
+          - name: VAPORMAP_URL
+            value: vapormap
+          - name: VAPORMAP_PORT
+            value: "8000"
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: nginx
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: vapormap
+  name: vapormap
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vapormap
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: vapormap
+    spec:
+      containers:
+      - image: ettayeb/vapormap:master
+        name: vapormap
+        resources: {}
+        env:
+        - name: VAPOR_DBNAME
+          value: "esgidb"
+        - name: VAPOR_DBUSER
+          value: "esgi"
+        - name: VAPOR_DBPASS
+          value: "esgi"
+        - name: DJANGO_SETTINGS_MODULE
+          value: "vapormap.settings.production"
+        - name: VAPOR_DBHOST
+          value: mariadb
+      initContainers:
+        - image: ettayeb/vapormap:master
+          name: vapormap-init
+          env:
+          - name: VAPOR_DBNAME
+            value: "esgidb"
+          - name: VAPOR_DBUSER
+            value: "esgi"
+          - name: VAPOR_DBPASS
+            value: "esgi"
+          - name: DJANGO_SETTINGS_MODULE
+            value: "vapormap.settings.production"
+          - name: VAPOR_DBHOST
+            value: mariadb
+          command: ["/bin/bash", "-c", "python manage.py makemigrations && python manage.py migrate"]
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: vapormap
+  name: vapormap
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: vapormap
+status:
+  loadBalancer: {}
