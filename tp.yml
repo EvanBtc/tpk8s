@@ -58,57 +58,6 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
-    app: nginx
-  name: nginx
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx
-  strategy: {}
-  template:
-    metadata:
-      creationTimestamp: null
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - image: ettayeb/tp-nginx
-        name: tp-nginx
-        resources: {}
-        env:
-          - name: VAPORMAP_URL
-            value: vapormap
-          - name: VAPORMAP_PORT
-            value: "8000"
-status: {}
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  creationTimestamp: null
-  labels:
-    app: nginx
-  name: nginx
-spec:
-  ports:
-  - port: 8000
-    protocol: TCP
-    targetPort: 8000
-  selector:
-    app: nginx
-status:
-  loadBalancer: {}
-
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  creationTimestamp: null
-  labels:
     app: vapormap
   name: vapormap
 spec:
@@ -173,3 +122,85 @@ spec:
     app: vapormap
 status:
   loadBalancer: {}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: ettayeb/tp-nginx
+        name: tp-nginx
+        resources: {}
+        env:
+          - name: VAPORMAP_URL
+            value: vapormap
+          - name: VAPORMAP_PORT
+            value: "8000"
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: nginx
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vapormap
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 8000
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/component: controller 
+  name: vapormap
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: k8s.io/ingress-nginx
